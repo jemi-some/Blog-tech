@@ -50,51 +50,51 @@ AI: "아, 그건 수작업으로 직접 하셔야 합니다."
 
 1. GitHub Webhook 연동을 위한 OAuth 앱 등록
 
-문제: n8n이 깃허브의 신호를 받으려면 정식 인증이 필요했습니다.
+    문제: n8n이 깃허브의 신호를 받으려면 정식 인증이 필요했습니다.
 
-해결: GitHub Developer settings에서 OAuth 앱을 생성하고, n8n에 Credential을 수동으로 등록하여 보안 연결을 성공시켰습니다.
+    해결: GitHub Developer settings에서 OAuth 앱을 생성하고, n8n에 Credential을 수동으로 등록하여 보안 연결을 성공시켰습니다.
 
 2. Filter 노드에서 수식 넣기
 
-해결: 
+    해결: 
 
-```JavaScript
-{{ ($json['body.commits'].modified[0] || $json['body.commits'].added[0] || "").endsWith('.md') }}
-```
+    ```JavaScript
+    {{ ($json['body.commits'].modified[0] || $json['body.commits'].added[0] || "").endsWith('.md') }}
+    ```
 
 3. 한글이 다 깨져요! (Base64 Decoding)
 
-문제: GitHub API로 가져온 본문 데이터는 Base64로 인코딩되어 있어, 그대로 보내면 한글이 깨졌습니다.
+    문제: GitHub API로 가져온 본문 데이터는 Base64로 인코딩되어 있어, 그대로 보내면 한글이 깨졌습니다.
 
-해결: Prepare Hashnode Data 노드에서 아래 수식을 사용하여 UTF-8로 완벽하게 복구했습니다.
+    해결: Prepare Hashnode Data 노드에서 아래 수식을 사용하여 UTF-8로 완벽하게 복구했습니다.
 
-```JavaScript
-{{ $json.content.base64Decode() }}
-```
+    ```JavaScript
+    {{ $json.content.base64Decode() }}
+    ```
 
 4. 중복 업로드 방지 (조회 노드 추가)
 
-문제: 단순히 Publish 노드만 두면, 오타 하나 고쳐서 push 할 때마다 똑같은 새 글이 무한 생성되는 대참사가 예상되었습니다.
+    문제: 단순히 Publish 노드만 두면, 오타 하나 고쳐서 push 할 때마다 똑같은 새 글이 무한 생성되는 대참사가 예상되었습니다.
 
-해결: Check Existing Post 노드를 중간에 삽입하여 **"이미 있으면 Update, 없으면 Create"**라는 분기(Branching)를 추가했습니다.
+    해결: Check Existing Post 노드를 중간에 삽입하여 **"이미 있으면 Update, 없으면 Create"**라는 분기(Branching)를 추가했습니다.
 
 5. "Variable $host was not provided" (GraphQL의 늪)
 
-문제: Hashnode API 조회 쿼리를 날릴 때 필수 변수가 누락되었다는 에러가 반복되었습니다.
+    문제: Hashnode API 조회 쿼리를 날릴 때 필수 변수가 누락되었다는 에러가 반복되었습니다.
 
-해결: Hashnode에 업로드하는 노드를 만들 때는 publicationId가 필요했는데, 여기서는 host를 사용해야 했습니다. 
+    해결: Hashnode에 업로드하는 노드를 만들 때는 publicationId가 필요했는데, 여기서는 host를 사용해야 했습니다. 
 
 6. JSON 문법 오류와 JSON.stringify의 구원
 
-문제: 마지막 Publish 노드에서 자꾸 JSON 형식이 잘못되었다는 에러가 발생했습니다. 알고 보니 본문(Markdown)에 포함된 줄바꿈, 큰따옴표, 특수문자들이 JSON의 구조를 깨뜨리고 있었습니다.
+    문제: 마지막 Publish 노드에서 자꾸 JSON 형식이 잘못되었다는 에러가 발생했습니다. 알고 보니 본문(Markdown)에 포함된 줄바꿈, 큰따옴표, 특수문자들이 JSON의 구조를 깨뜨리고 있었습니다.
 
-해결: 데이터를 보낼 때 단순히 변수만 넣지 않고, 아래와 같이 **JSON.stringify()**를 사용하여 데이터를 안전하게 '문자열화'하여 해결했습니다.
+    해결: 데이터를 보낼 때 단순히 변수만 넣지 않고, 아래와 같이 **JSON.stringify()**를 사용하여 데이터를 안전하게 '문자열화'하여 해결했습니다.
 
-```JavaScript
-"contentMarkdown": {{ JSON.stringify($('Prepare Hashnode Data').item.json.contentMarkdown) }}
-```
+    ```JavaScript
+    "contentMarkdown": {{ JSON.stringify($('Prepare Hashnode Data').item.json.contentMarkdown) }}
+    ```
 
-교훈: 텍스트 데이터가 길고 복잡할수록, 시스템이 오해하지 않도록 **규격화해서 포장(Stringify)**해주는 과정이 필수라는 것을 배웠습니다.
+    교훈: 텍스트 데이터가 길고 복잡할수록, 시스템이 오해하지 않도록 **규격화해서 포장(Stringify)**해주는 과정이 필수라는 것을 배웠습니다.
 
 
 ### 🏆 마치며
